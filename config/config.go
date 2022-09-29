@@ -29,4 +29,5 @@ func SetDefaults(vp *viper.Viper) {
 	vp.SetDefault("cleanupInterval", time.Minute)
 	vp.SetDefault("lease.timeout", time.Minute)
 	vp.SetDefault("logLevel", "info")
+	vp.SetDefault("etcd.dialTimeout", time.Second*3)
 }
