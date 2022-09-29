@@ -24,6 +24,7 @@ type etcdBackend struct {
 var _ backend.Backend = &etcdBackend{}
 
 func NewEtcdBackend(cfg *config.Config, logger *zap.Logger) (*etcdBackend, error) {
+	cfg.Etcd.Logger = logger
 	client, err := clientv3.New(cfg.Etcd)
 	if err != nil {
 		return nil, err

@@ -24,6 +24,7 @@ func main() {
 
 	atomic := zap.NewAtomicLevel()
 	encoderCfg := zap.NewProductionEncoderConfig()
+	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 	logger := zap.New(zapcore.NewCore(
 		zapcore.NewConsoleEncoder(encoderCfg),
 		zapcore.Lock(os.Stdout),
