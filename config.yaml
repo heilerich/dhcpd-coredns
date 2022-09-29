@@ -1,0 +1,12 @@
+etcd:
+  endpoints:
+  - http://etcd:2379
+  username: test-user
+  password: test-pass
+lease:
+  file: parser/testdata/leases.example
+  timeout: 10s
+keyPrefix:
+  zone: /skydns/test/run/
+  heartbeat: /dhcpd/run/
+logLevel: debug

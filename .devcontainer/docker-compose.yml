@@ -1,0 +1,75 @@
+version: '3.8'
+
+networks:
+  dhcpd-dev:
+    driver: bridge
+
+services:
+  vscode:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+      args:
+        VARIANT: 1.19-bullseye
+        NODE_VERSION: "none"
+        USER_UID: "501"
+    volumes:
+      - ..:/workspace
+    cap_add:
+      - "SYS_PTRACE"
+    security_opt:
+      - "seccomp=unconfined"
+    command: ["sh", "-c", "sleep infinity"]
+    environment:
+      DHCPD_EXPORT_ETCD: http://etcd:2379 
+      DHCPD_EXPORT_ETCD_USER: test-user
+      DHCPD_EXPORT_ETCD_PASSWORD: test-pass
+      DHCPD_EXPORT_ETCD_DNS_PREFIX: /skydns/
+      DHCPD_EXPORT_ETCD_CONFIG_PREFIX: /dhcpd/
+    networks:
+      - dhcpd-dev
+
+  etcd:
+    image: 'gcr.io/etcd-development/etcd'
+    entrypoint: ["/bin/sh", "-c"]
+    user: root
+    command:
+      - |
+        /usr/local/bin/etcd \
+          --enable-v2=false \
+          --debug \
+          --listen-client-urls='http://0.0.0.0:2379' &
+        sleep 2
+        etcdctl user add "root:password"
+        etcdctl auth enable
+
+        etcdctl user add "coredns:corepass"
+        etcdctl role add coredns
+        etcdctl role grant-permission coredns --prefix=true read /skydns/test/
+        etcdctl user grant-role coredns coredns
+
+        etcdctl user add "test-user:test-pass"
+        etcdctl role add test-role
+        etcdctl user grant-role test-user test-role
+        etcdctl role grant-permission test-role --prefix=true readwrite /skydns/
+        etcdctl role grant-permission test-role --prefix=true readwrite /dhcpd/
+        wait
+    environment:
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+      - ETCDCTL_USER=root:password
+      - ETCDCTL_API=3
+    expose:
+      - "2379"
+      - "2380"
+    networks:
+      - dhcpd-dev
+
+  coredns:
+    image: coredns/coredns
+    ports:
+      - "5358:5354/udp"
+      - "5358:5354/tcp"
+    volumes:
+      - ./Corefile:/Corefile:ro
+    networks:
+      - dhcpd-dev
