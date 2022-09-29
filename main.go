@@ -22,7 +22,14 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	logger, _ := zap.NewProduction()
+	atomic := zap.NewAtomicLevel()
+	encoderCfg := zap.NewProductionEncoderConfig()
+	logger := zap.New(zapcore.NewCore(
+		zapcore.NewConsoleEncoder(encoderCfg),
+		zapcore.Lock(os.Stdout),
+		atomic,
+	))
+	defer logger.Sync()
 
 	cfg := initConfig(logger)
 
@@ -31,14 +38,7 @@ func main() {
 		logger.Fatal("invalid log level", zap.Error(err))
 	}
 
-	logger.Sync()
-	encoderCfg := zap.NewProductionEncoderConfig()
-	logger = zap.New(zapcore.NewCore(
-		zapcore.NewConsoleEncoder(encoderCfg),
-		zapcore.Lock(os.Stdout),
-		logLevel,
-	))
-	defer logger.Sync()
+	atomic.SetLevel(logLevel)
 
 	shutdownWg := &util.TimeoutGroup{}
 
